@@ -1,4 +1,4 @@
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React from "react";
 import { TouchableOpacity, View } from "react-native";
@@ -15,8 +15,8 @@ type RootStackParamList = {
 type NavbarNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const Navbar = () => {
-
   const navigation = useNavigation<NavbarNavigationProp>();
+  const route = useRoute(); // Get current route name
 
   const navItems = [
     { label: "SKY Linq", route: "SKYLinq" },
@@ -27,14 +27,37 @@ const Navbar = () => {
   ];
 
   return (
-    <Appbar.Header style={{ backgroundColor: "#1e293b" }}>
-      <Appbar.Content title="Pegasus MedFlight" titleStyle={{ fontWeight: "700" }} />
-      <View style={{ flexDirection: "row" }}>
-        {navItems.map((item, index) => (
-          <TouchableOpacity key={index} onPress={() => navigation.navigate(item.route)} style={{ marginHorizontal: 8 }}>
-            <Text style={{ color: "#f8fafc", fontWeight: "600" }}>{item.label}</Text>
-          </TouchableOpacity>
-        ))}
+    <Appbar.Header style={{ backgroundColor: "#0f172a", elevation: 4 }}>
+      <Appbar.Content
+        title="Pegasus MedFlight"
+        titleStyle={{ fontWeight: "700", color: "#f8fafc" }}
+      />
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        {navItems.map((item, index) => {
+          const isActive = route.name === item.route;
+          return (
+            <TouchableOpacity
+              key={index}
+              onPress={() => navigation.navigate(item.route as never)}
+              style={{
+                marginHorizontal: 6,
+                paddingVertical: 6,
+                paddingHorizontal: 10,
+                borderRadius: 6,
+                backgroundColor: isActive ? "#1e293b" : "transparent",
+              }}
+            >
+              <Text
+                style={{
+                  color: isActive ? "#38bdf8" : "#f8fafc",
+                  fontWeight: isActive ? "700" : "500",
+                }}
+              >
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </Appbar.Header>
   );
