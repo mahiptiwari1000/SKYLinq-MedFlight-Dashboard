@@ -20,9 +20,8 @@ const Navbar = () => {
 
   const navItems = [
     { label: "SKY Linq", route: "SKYLinq" },
+    { label: "Med Partner Dashboard", route: "MedPartnerDashboard" },
     { label: "Pilot Dashboard", route: "PilotDashboard" },
-    { label: "Flight Log", route: "FlightLog" },
-    { label: "Terminal Requests", route: "TerminalRequests" },
     { label: "Admin Console", route: "AdminConsole" },
   ];
 
