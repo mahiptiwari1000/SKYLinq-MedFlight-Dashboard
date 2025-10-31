@@ -1,4 +1,6 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons"; // Make sure to install @expo/vector-icons
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React from "react";
 import {
   ScrollView,
@@ -9,9 +11,21 @@ import {
 } from "react-native";
 import { Button, Card, Divider, Text } from "react-native-paper";
 
+// ✅ Define navigation routes for this stack
+type RootStackParamList = {
+  AdminConsole: undefined;
+  PilotDashboard: undefined;
+  TerminalRequests: undefined;
+  FlightLogs: undefined;
+  MedPartnerDashboard: undefined;
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
 const PilotSkyDashboard = () => {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const navigation = useNavigation<NavigationProp>();
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -335,10 +349,11 @@ const PilotSkyDashboard = () => {
         </View>
       </View>
 
-      {/* FOOTER BUTTONS */}
+      {/* ✅ FOOTER NAVIGATION BUTTONS */}
       <View style={styles.footerContainer}>
         <TouchableOpacity
           style={[styles.footerButton, styles.footerButtonBlue]}
+          onPress={() => navigation.navigate("FlightLogs")}
         >
           <MaterialCommunityIcons
             name="file-document-outline"
@@ -347,8 +362,10 @@ const PilotSkyDashboard = () => {
           />
           <Text style={styles.footerButtonText}>Flight Log</Text>
         </TouchableOpacity>
+
         <TouchableOpacity
           style={[styles.footerButton, styles.footerButtonPurple]}
+          onPress={() => navigation.navigate("TerminalRequests")}
         >
           <MaterialCommunityIcons
             name="cellphone-wireless"

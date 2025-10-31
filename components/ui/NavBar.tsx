@@ -1,3 +1,4 @@
+// src/components/ui/Navbar.tsx
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React from "react";
@@ -7,23 +8,27 @@ import { Appbar, Text } from "react-native-paper";
 type RootStackParamList = {
   SKYLinq: undefined;
   PilotDashboard: undefined;
-  FlightLog: undefined;
-  TerminalRequests: undefined;
+  MedPartnerDashboard: undefined;
   AdminConsole: undefined;
+  FlightLogs: undefined;        // exists in stack, hidden in navbar
+  TerminalRequests: undefined;  // exists in stack, hidden in navbar
 };
 
+type RouteName = keyof RootStackParamList;
 type NavbarNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const Navbar = () => {
+const Navbar: React.FC = () => {
   const navigation = useNavigation<NavbarNavigationProp>();
-  const route = useRoute(); // Get current route name
+  const route = useRoute();
 
-  const navItems = [
-    { label: "SKY Linq", route: "SKYLinq" },
+  // Only show these in the top navbar:
+  const MENU_ROUTES: { label: string; route: RouteName }[] = [
     { label: "Med Partner Dashboard", route: "MedPartnerDashboard" },
     { label: "Pilot Dashboard", route: "PilotDashboard" },
     { label: "Admin Console", route: "AdminConsole" },
   ];
+
+  const current = (route.name as RouteName) ?? "PilotDashboard";
 
   return (
     <Appbar.Header style={{ backgroundColor: "#0f172a", elevation: 4 }}>
@@ -32,12 +37,12 @@ const Navbar = () => {
         titleStyle={{ fontWeight: "700", color: "#f8fafc" }}
       />
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        {navItems.map((item, index) => {
-          const isActive = route.name === item.route;
+        {MENU_ROUTES.map((item) => {
+          const isActive = current === item.route;
           return (
             <TouchableOpacity
-              key={index}
-              onPress={() => navigation.navigate(item.route as never)}
+              key={item.route}
+              onPress={() => navigation.navigate(item.route)}
               style={{
                 marginHorizontal: 6,
                 paddingVertical: 6,
