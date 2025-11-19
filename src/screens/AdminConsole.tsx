@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import axios from 'axios';
 import * as d3 from 'd3';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -12,6 +13,11 @@ import {
 import { Button, Card } from 'react-native-paper';
 import { G, Line, Path, Rect, Svg, Text as SvgText } from 'react-native-svg';
 
+// ⚠️ Change URL depending on device:
+// const API_BASE = "http://localhost:5000";  // iOS Simulator
+const API_BASE = "http://localhost:5001";
+// const API_BASE = "http://YOUR-IP:5000";    // Physical Device
+
 //––––––––––––––––––––––––––––––––––––––––––––––––––
 // BAR CHART
 //––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -20,14 +26,16 @@ const BarChart = ({ data, width, height }) => {
   const graphWidth = width - margin.left - margin.right;
   const graphHeight = height - margin.top - margin.bottom;
 
-  const x = d3.scaleBand()
-    .domain(data.map(item => item.month))
+  const x = d3
+    .scaleBand()
+    .domain(data.map((item) => item.month))
     .range([0, graphWidth])
     .paddingInner(0.4)
     .paddingOuter(0.2);
 
-  const y = d3.scaleLinear()
-    .domain([0, d3.max(data, d => d.total)])
+  const y = d3
+    .scaleLinear()
+    .domain([0, d3.max(data, (d) => d.total)])
     .range([graphHeight, 0]);
 
   const yTicks = y.ticks(4);
@@ -35,16 +43,29 @@ const BarChart = ({ data, width, height }) => {
   return (
     <Svg width={width} height={height}>
       <G transform={`translate(${margin.left}, ${margin.top})`}>
-        {yTicks.map(tick => (
+        {yTicks.map((tick) => (
           <G key={tick}>
-            <Line x1={0} y1={y(tick)} x2={graphWidth} y2={y(tick)} stroke="#e2e8f0" strokeDasharray="4" />
-            <SvgText x={-8} y={y(tick) + 4} fill="#64748b" fontSize="12" textAnchor="end">
+            <Line
+              x1={0}
+              y1={y(tick)}
+              x2={graphWidth}
+              y2={y(tick)}
+              stroke="#e2e8f0"
+              strokeDasharray="4"
+            />
+            <SvgText
+              x={-8}
+              y={y(tick) + 4}
+              fill="#64748b"
+              fontSize="12"
+              textAnchor="end"
+            >
               {tick}
             </SvgText>
           </G>
         ))}
 
-        {data.map(item => (
+        {data.map((item) => (
           <G key={item.month}>
             <Rect
               x={x(item.month)}
@@ -65,14 +86,15 @@ const BarChart = ({ data, width, height }) => {
           </G>
         ))}
 
-        {data.map(item => (
+        {data.map((item) => (
           <SvgText
             key={`label-${item.month}`}
             x={x(item.month) + x.bandwidth() / 2}
             y={graphHeight + 20}
             fill="#64748b"
             fontSize="12"
-            textAnchor="middle">
+            textAnchor="middle"
+          >
             {item.month}
           </SvgText>
         ))}
@@ -86,11 +108,13 @@ const BarChart = ({ data, width, height }) => {
 //––––––––––––––––––––––––––––––––––––––––––––––––––
 const PieChart = ({ data, width, height }) => {
   const radius = Math.min(width, height) / 2 - 10;
-  const pie = d3.pie().value(d => d.value).sort(null);
+  const pie = d3.pie().value((d) => d.value).sort(null);
   const arc = d3.arc().innerRadius(0).outerRadius(radius);
-  const colors = d3.scaleOrdinal()
-    .domain(data.map(d => d.label))
+  const colors = d3
+    .scaleOrdinal()
+    .domain(data.map((d) => d.label))
     .range(['#22c55e', '#3b82f6', '#f59e0b', '#ef4444']);
+
   const pieData = pie(data);
 
   return (
@@ -105,27 +129,16 @@ const PieChart = ({ data, width, height }) => {
 };
 
 //––––––––––––––––––––––––––––––––––––––––––––––––––
-// DATA & HELPERS
+// PROGRESS BAR
 //––––––––––––––––––––––––––––––––––––––––––––––––––
-const missionVolumeData = [
-  { month: 'Jan', total: 40, stat: 12 },
-  { month: 'Feb', total: 52, stat: 5 },
-  { month: 'Mar', total: 48, stat: 10 },
-  { month: 'Apr', total: 61, stat: 18 },
-  { month: 'May', total: 55, stat: 14 },
-  { month: 'Jun', total: 68, stat: 21 },
-];
-
-const missionStatusData = [
-  { label: 'Completed', value: 234 },
-  { label: 'In Progress', value: 12 },
-  { label: 'Delayed', value: 3 },
-  { label: 'Cancelled', value: 1 },
-];
-
 const ProgressBar = ({ value, color = '#4ade80' }) => (
   <View style={styles.progressBarContainer}>
-    <View style={[styles.progressBarFill, { width: `${value}%`, backgroundColor: color }]} />
+    <View
+      style={[
+        styles.progressBarFill,
+        { width: `${value}%`, backgroundColor: color },
+      ]}
+    />
   </View>
 );
 
@@ -136,6 +149,49 @@ const AdminConsole = ({ navigation }) => {
   const { width } = useWindowDimensions();
   const isMobile = width < 1024;
 
+  //–––––––––––––––––––––
+  // STATE: Fleet + Analytics
+  //–––––––––––––––––––––
+  const [fleet, setFleet] = useState([]);
+  const [missionVolumeData, setMissionVolumeData] = useState([]);
+  const [missionStatusData, setMissionStatusData] = useState([]);
+
+  //–––––––––––––––––––––
+  // API CALLS
+  //–––––––––––––––––––––
+  useEffect(() => {
+    axios
+      .get(`${API_BASE}/api/fleet`)
+      .then((res) => setFleet(res.data))
+      .catch((err) => console.error("Fleet Error:", err));
+
+    axios
+      .get(`${API_BASE}/api/analytics/mission-volume`)
+      .then((res) => setMissionVolumeData(res.data));
+
+    axios
+      .get(`${API_BASE}/api/analytics/mission-status`)
+      .then((res) => setMissionStatusData(res.data));
+  }, []);
+
+  //–––––––––––––––––––––
+  // Emergency Controls
+  //–––––––––––––––––––––
+  const triggerPing = () => {
+    axios.post(`${API_BASE}/api/emergency/ping`);
+  };
+
+  const notifyPilots = () => {
+    axios.post(`${API_BASE}/api/emergency/notify-pilots`);
+  };
+
+  const overrideSystem = () => {
+    axios.post(`${API_BASE}/api/emergency/override`);
+  };
+
+  //–––––––––––––––––––––
+  // RENDER
+  //–––––––––––––––––––––
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* HEADER */}
@@ -143,11 +199,15 @@ const AdminConsole = ({ navigation }) => {
         <Card.Content style={styles.headerContent}>
           <View>
             <Text style={styles.headerTitle}>Admin Console</Text>
-            <Text style={styles.headerSubtitle}>Fleet management and system administration</Text>
+            <Text style={styles.headerSubtitle}>
+              Fleet management and system administration
+            </Text>
           </View>
           <View style={styles.headerStatus}>
             <Text style={styles.headerStatusText}>Fleet Status</Text>
-            <Text style={styles.headerStatusValue}>3/4 Active</Text>
+            <Text style={styles.headerStatusValue}>
+              {fleet.filter((f) => f.status === 'in-flight' || f.status === 'available').length}/{fleet.length} Active
+            </Text>
             <MaterialCommunityIcons name="cog" size={28} color="#fff" />
           </View>
         </Card.Content>
@@ -159,27 +219,27 @@ const AdminConsole = ({ navigation }) => {
         <View style={[styles.mainColumn, isMobile && styles.fullWidth]}>
           {/* AIRCRAFT STATUS */}
           <View style={[styles.aircraftGrid, isMobile && styles.aircraftGridMobile]}>
-            {[
-              { id: 'PEGA-001', status: 'in-flight', battery: 87, temp: '2.8°C', color: '#3b82f6', loc: 'En route to MD Anderson', mission: 'STAT - Heart Transport', eta: '14:32' },
-              { id: 'PEGA-002', status: 'available', battery: 95, temp: '3.2°C', color: '#22c55e', loc: 'PEGA Base - Houston', mission: 'Standby', eta: 'Ready' },
-              { id: 'PEGA-003', status: 'maintenance', battery: 45, temp: 'N/A', color: '#f97316', loc: 'Service Hangar B', mission: 'Scheduled Maintenance', eta: '16:00' },
-              { id: 'PEGA-004', status: 'in-flight', battery: 72, temp: '4.1°C', color: '#3b82f6', loc: 'En route to Memorial Hermann', mission: 'Standard - Blood Products', eta: '15:15' },
-            ].map((a, i) => (
+            {fleet.map((a, i) => (
               <Card key={i} style={styles.aircraftCard}>
                 <Card.Content>
                   <View style={styles.aircraftHeader}>
                     <Text style={styles.aircraftId}>
                       <MaterialCommunityIcons name="airplane" size={16} /> {a.id}
                     </Text>
-                    <View style={[styles.statusBadge, { backgroundColor: a.color }]}>
+                    <View style={[styles.statusBadge, { backgroundColor: a.color || '#3b82f6' }]}>
                       <Text style={styles.statusBadgeText}>{a.status}</Text>
                     </View>
                   </View>
-                  <Text style={styles.batteryLabel}>Battery Level <Text style={{ fontWeight: 'bold' }}>{a.battery}%</Text></Text>
-                  <ProgressBar value={a.battery} color={a.color} />
-                  <Text style={styles.aircraftInfo}>
-                    <MaterialCommunityIcons name="map-marker-outline" size={14} /> {a.loc}
+
+                  <Text style={styles.batteryLabel}>
+                    Battery Level <Text style={{ fontWeight: 'bold' }}>{a.battery}%</Text>
                   </Text>
+                  <ProgressBar value={a.battery} color={a.color || '#3b82f6'} />
+
+                  <Text style={styles.aircraftInfo}>
+                    <MaterialCommunityIcons name="map-marker-outline" size={14} /> {a.location}
+                  </Text>
+
                   <Text style={styles.detailText}>Mission: <Text style={{ fontWeight: 'bold' }}>{a.mission}</Text></Text>
                   <Text style={styles.detailText}>ETA: <Text style={{ fontWeight: 'bold' }}>{a.eta}</Text></Text>
                   <Text style={styles.detailText}>Cooler Temp: <Text style={{ fontWeight: 'bold' }}>{a.temp}</Text></Text>
@@ -190,12 +250,21 @@ const AdminConsole = ({ navigation }) => {
 
           {/* MISSION ANALYTICS */}
           <Card style={styles.analyticsCard}>
-            <Card.Title title={<Text style={styles.cardTitle}><MaterialCommunityIcons name="chart-line" size={16}/> Mission Analytics</Text>} />
-            <Card.Content style={[styles.analyticsContent, isMobile && styles.analyticsContentMobile]}>
+            <Card.Title
+              title={
+                <Text style={styles.cardTitle}>
+                  <MaterialCommunityIcons name="chart-line" size={16} /> Mission Analytics
+                </Text>
+              }
+            />
+            <Card.Content
+              style={[styles.analyticsContent, isMobile && styles.analyticsContentMobile]}
+            >
               <View style={styles.chartContainer}>
                 <Text style={styles.chartTitle}>Monthly Mission Volume</Text>
                 <BarChart data={missionVolumeData} width={300} height={150} />
               </View>
+
               <View style={styles.chartContainer}>
                 <Text style={styles.chartTitle}>Mission Status Distribution</Text>
                 <PieChart data={missionStatusData} width={150} height={150} />
@@ -207,11 +276,41 @@ const AdminConsole = ({ navigation }) => {
         {/* SIDEBAR */}
         <View style={[styles.sidebarColumn, isMobile && styles.fullWidth]}>
           <Card style={[styles.sidebarCard, { backgroundColor: '#fff1f2' }]}>
-            <Card.Title title={<Text style={styles.cardTitle}><MaterialCommunityIcons name="alert-circle-outline" size={16}/> Emergency Controls</Text>} />
+            <Card.Title
+              title={
+                <Text style={styles.cardTitle}>
+                  <MaterialCommunityIcons name="alert-circle-outline" size={16} /> Emergency Controls
+                </Text>
+              }
+            />
             <Card.Content>
-              <Button icon="flash" mode="contained" style={styles.emergencyButton} labelStyle={{ color: '#fff' }}>Emergency Ping All</Button>
-              <Button icon="account-group-outline" mode="outlined" style={styles.sidebarButton}>Contact All Pilots</Button>
-              <Button icon="vector-link" mode="outlined" style={styles.sidebarButton}>System Override</Button>
+              <Button
+                icon="flash"
+                mode="contained"
+                style={styles.emergencyButton}
+                labelStyle={{ color: '#fff' }}
+                onPress={triggerPing}
+              >
+                Emergency Ping All
+              </Button>
+
+              <Button
+                icon="account-group-outline"
+                mode="outlined"
+                style={styles.sidebarButton}
+                onPress={notifyPilots}
+              >
+                Contact All Pilots
+              </Button>
+
+              <Button
+                icon="vector-link"
+                mode="outlined"
+                style={styles.sidebarButton}
+                onPress={overrideSystem}
+              >
+                System Override
+              </Button>
             </Card.Content>
           </Card>
         </View>
@@ -221,12 +320,16 @@ const AdminConsole = ({ navigation }) => {
       <View style={styles.footerContainer}>
         <TouchableOpacity
           style={[styles.footerButton, styles.footerButtonBlue]}
-          onPress={() => navigation.navigate('FlightLogs')}>
+          onPress={() => navigation.navigate('FlightLogs')}
+        >
           <MaterialCommunityIcons name="file-document-outline" size={18} color="#2563eb" />
           <Text style={styles.footerButtonText}>Flight Log</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.footerButton, styles.footerButtonPurple]} onPress={() => navigation.navigate('TerminalRequests')}>
+        <TouchableOpacity
+          style={[styles.footerButton, styles.footerButtonPurple]}
+          onPress={() => navigation.navigate('TerminalRequests')}
+        >
           <MaterialCommunityIcons name="cellphone-wireless" size={18} color="#9333ea" />
           <Text style={styles.footerButtonText}>Terminal Requests</Text>
         </TouchableOpacity>
@@ -235,9 +338,9 @@ const AdminConsole = ({ navigation }) => {
   );
 };
 
-//––––––––––––––––––––––––––––––––––––––––––––––––––
+//––––––––––––––––––––––––––––––––––––––
 // STYLES
-//––––––––––––––––––––––––––––––––––––––––––––––––––
+//––––––––––––––––––––––––––––––––––––––
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f5f9', paddingHorizontal: 16 },
   headerCard: { backgroundColor: '#f97316', borderRadius: 20, marginVertical: 16, elevation: 4 },
