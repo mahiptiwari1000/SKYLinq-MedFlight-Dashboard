@@ -1,14 +1,17 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import React, { useCallback } from "react";
 import {
+  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
   View
 } from "react-native";
+
+import React from "react";
 import { Button, Card, Text } from "react-native-paper";
+
 
 const FlightLogs = () => {
   const flightEvents = [
@@ -77,268 +80,118 @@ const FlightLogs = () => {
     },
   ];
 
-  // ---- Helper to build status stats + pie chart gradient ----
-  const buildStatusStats = useCallback(() => {
-    const counts = {};
-    flightEvents.forEach((e) => {
-      counts[e.status] = (counts[e.status] || 0) + 1;
-    });
 
-    const total = flightEvents.length;
-    const segments = [];
-    let current = 0;
 
-    Object.entries(counts).forEach(([status, count]) => {
-      const pct = (count as number) / total;
-      const start = current * 100;
-      const end = (current + pct) * 100;
-      segments.push({ status, start, end, count });
-      current += pct;
-    });
-
-    // Map statuses to colors (these should match your app palette)
-    const statusColors: Record<string, string> = {
-      completed: "#22c55e", // green
-      resolved: "#3b82f6", // blue
-    };
-
-    const gradientStops = segments
-      .map((seg) => {
-        const color = statusColors[seg.status] || "#64748b";
-        return `${color} ${seg.start.toFixed(2)}% ${seg.end.toFixed(2)}%`;
-      })
-      .join(", ");
-
-    return { segments, total, gradientStops, statusColors };
-  }, [flightEvents]);
-
-  // ---- HTML generator for the PDF ----
-  const generatePdfHtml = useCallback(() => {
-    const { segments, total, gradientStops, statusColors } = buildStatusStats();
-
+    const generatePdfHtml = () => {
     const rowsHtml = flightEvents
       .map(
         (e) => `
-        <tr>
-          <td>${e.timestamp}</td>
-          <td>${e.event}</td>
-          <td>${e.flightId}</td>
-          <td>${e.location}</td>
-          <td>${e.status}</td>
-          <td>${e.priority}</td>
-          <td>${e.temp}</td>
-        </tr>
-      `
+          <tr>
+            <td>${e.timestamp}</td>
+            <td>${e.event}</td>
+            <td>${e.flightId}</td>
+            <td>${e.location}</td>
+            <td>${e.status}</td>
+            <td>${e.priority}</td>
+            <td>${e.temp}</td>
+          </tr>
+        `
       )
       .join("");
 
-    const legendHtml = segments
-      .map((seg) => {
-        const color = statusColors[seg.status] || "#64748b";
-        const pct = ((seg.count as number) / total) * 100;
-        return `
-          <div class="legend-item">
-            <span class="legend-color" style="background-color:${color};"></span>
-            <span class="legend-text">
-              ${seg.status} – ${seg.count} (${pct.toFixed(1)}%)
-            </span>
-          </div>
-        `;
-      })
-      .join("");
-
     return `
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>Flight Logs Report</title>
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            padding: 24px;
-            color: #0f172a;
-            background-color: #f8fafc;
-          }
-          h1 {
-            font-size: 24px;
-            margin-bottom: 4px;
-            color: #111827;
-          }
-          h2 {
-            font-size: 18px;
-            margin-top: 24px;
-            margin-bottom: 8px;
-            color: #111827;
-          }
-          .subtitle {
-            color: #6b7280;
-            font-size: 12px;
-            margin-bottom: 16px;
-          }
-          .header-meta {
-            font-size: 12px;
-            color: #6b7280;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 8px;
-            font-size: 11px;
-          }
-          th, td {
-            border: 1px solid #e5e7eb;
-            padding: 6px 8px;
-            text-align: left;
-          }
-          th {
-            background-color: #f3f4f6;
-            font-weight: 600;
-            color: #374151;
-          }
-          tr:nth-child(even) td {
-            background-color: #f9fafb;
-          }
-
-          .summary-row {
-            display: flex;
-            gap: 16px;
-            margin-top: 12px;
-          }
-          .summary-card {
-            flex: 1;
-            border-radius: 12px;
-            padding: 10px 12px;
-            color: #fff;
-          }
-          .summary-title {
-            font-size: 12px;
-            opacity: 0.9;
-          }
-          .summary-number {
-            font-size: 20px;
-            font-weight: 700;
-            margin-top: 4px;
-          }
-          .summary-green { background-color: #22c55e; }
-          .summary-blue { background-color: #3b82f6; }
-          .summary-purple { background-color: #8b5cf6; }
-          .summary-red { background-color: #ef4444; }
-
-          .chart-container {
-            display: flex;
-            gap: 24px;
-            align-items: center;
-            margin-top: 12px;
-          }
-          .pie {
-            width: 180px;
-            height: 180px;
-            border-radius: 50%;
-            background: conic-gradient(${gradientStops});
-            border: 4px solid #e5e7eb;
-          }
-          .legend {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            font-size: 12px;
-          }
-          .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-          }
-          .legend-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 999px;
-            display: inline-block;
-          }
-          .legend-text {
-            color: #374151;
-          }
-        </style>
-      </head>
-      <body>
-        <h1>Flight Log System – Report</h1>
-        <div class="subtitle">
-          Comprehensive flight event tracking and documentation
-        </div>
-        <div class="header-meta">
-          Generated at: ${new Date().toLocaleString()}
-          <br/>
-          Total events: ${flightEvents.length}
-        </div>
-
-        <h2>Flight Status Overview</h2>
-        <div class="chart-container">
-          <div class="pie"></div>
-          <div class="legend">
-            ${legendHtml}
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Flight Events Log</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+              padding: 24px;
+              color: #0f172a;
+              background-color: #ffffff;
+            }
+            h1 {
+              font-size: 22px;
+              margin-bottom: 4px;
+            }
+            .meta {
+              font-size: 12px;
+              color: #6b7280;
+              margin-bottom: 16px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 11px;
+            }
+            th, td {
+              border: 1px solid #e5e7eb;
+              padding: 6px 8px;
+              text-align: left;
+            }
+            th {
+              background-color: #f3f4f6;
+              font-weight: 600;
+            }
+            tr:nth-child(even) td {
+              background-color: #f9fafb;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Flight Events Log</h1>
+          <div class="meta">
+            Generated at: ${new Date().toLocaleString()}<br/>
+            Total events: ${flightEvents.length}
           </div>
-        </div>
-
-        <div class="summary-row">
-          <div class="summary-card summary-green">
-            <div class="summary-title">Completed Flights</div>
-            <div class="summary-number">24</div>
-          </div>
-          <div class="summary-card summary-blue">
-            <div class="summary-title">Active Missions</div>
-            <div class="summary-number">3</div>
-          </div>
-          <div class="summary-card summary-purple">
-            <div class="summary-title">Success Rate</div>
-            <div class="summary-number">98.7%</div>
-          </div>
-          <div class="summary-card summary-red">
-            <div class="summary-title">STAT Alerts</div>
-            <div class="summary-number">2</div>
-          </div>
-        </div>
-
-        <h2>Flight Events Log</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Timestamp</th>
-              <th>Event</th>
-              <th>Flight ID</th>
-              <th>Location</th>
-              <th>Status</th>
-              <th>Priority</th>
-              <th>Temp</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-          </tbody>
-        </table>
-      </body>
-    </html>
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Event</th>
+                <th>Flight ID</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Temp</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </body>
+      </html>
     `;
-  }, [buildStatusStats, flightEvents]);
+  };
 
-  // ---- Export handler ----
-  const handleExportPdf = useCallback(async () => {
-    try {
-      const html = generatePdfHtml();
+  const handleExportPdf = async () => {
+  const html = generatePdfHtml();
 
-      const { uri } = await Print.printToFileAsync({
-        html,
-        base64: false,
-      });
+  if (Platform.OS === "web") {
+    // ---- WEB DOWNLOAD LOGIC ----
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
 
-      // Open share dialog so user can download / save / share the PDF
-      await Sharing.shareAsync(uri, {
-        mimeType: "application/pdf",
-        dialogTitle: "Share Flight Logs Report",
-        UTI: "com.adobe.pdf",
-      });
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-    }
-  }, [generatePdfHtml]);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "flight_logs.html"; 
+    link.click();
+
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  // ---- MOBILE PDF LOGIC ----
+  try {
+    const { uri } = await Print.printToFileAsync({ html });
+    await Sharing.shareAsync(uri);
+  } catch (err) {
+    console.error("PDF error:", err);
+  }
+};
+
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -377,7 +230,7 @@ const FlightLogs = () => {
               mode="contained"
               buttonColor="#ef4444"
               textColor="#fff"
-              onPress={handleExportPdf}   // <<< HERE
+              onPress={handleExportPdf}     
             >
               Export PDF
             </Button>
@@ -453,9 +306,7 @@ const FlightLogs = () => {
           )}
           right={() => (
             <View style={styles.eventCount}>
-              <Text style={styles.eventCountText}>
-                {flightEvents.length} events
-              </Text>
+              <Text style={styles.eventCountText}>7 events</Text>
             </View>
           )}
         />
@@ -553,10 +404,11 @@ const styles = StyleSheet.create({
   // Page
   container: {
     flex: 1,
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#f1f5f9", // light app background
     padding: 16,
   },
-  // Header (purple banner)
+
+  // Header (purple banner, still light-friendly)
   headerCard: {
     borderRadius: 20,
     backgroundColor: "#7c3aed",
@@ -578,11 +430,11 @@ const styles = StyleSheet.create({
   syncLabel: { color: "#ede9fe", fontSize: 12 },
   syncTime: { color: "#ffffff", fontWeight: "700", fontSize: 16 },
 
-  // Controls
+  // Controls block
   controlCard: {
     borderRadius: 16,
     marginBottom: 16,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#ffffff", // force light
     elevation: 2,
     shadowColor: "#000",
     shadowOpacity: 0.05,
@@ -590,6 +442,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   controlTitle: { fontWeight: "bold", color: "#334155" },
+
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -626,7 +479,7 @@ const styles = StyleSheet.create({
   syncCard: {
     flex: 1,
     borderRadius: 12,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#ffffff", // base; we still tint per-instance if desired
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
@@ -651,6 +504,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   logTitle: { fontWeight: "bold", color: "#4c1d95" },
+
   eventCount: {
     backgroundColor: "#ede9fe",
     paddingHorizontal: 8,
@@ -658,6 +512,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   eventCountText: { color: "#6d28d9", fontWeight: "600" },
+
   tableHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -675,12 +530,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
   },
+
   tableRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#e2e8f0",
+    backgroundColor: "#ffffff", // base white; alternate in render if you like
   },
   tableCell: {
     flex: 1,
@@ -697,6 +554,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     overflow: "hidden",
   },
+
   statusBadge: {
     flex: 1,
     textAlign: "center",
@@ -711,6 +569,7 @@ const styles = StyleSheet.create({
   },
   statusGreen: { backgroundColor: "#22c55e" },
   statusBlue: { backgroundColor: "#3b82f6" },
+
   priorityBadge: {
     flex: 1,
     textAlign: "center",
@@ -757,5 +616,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
 
 export default FlightLogs;
