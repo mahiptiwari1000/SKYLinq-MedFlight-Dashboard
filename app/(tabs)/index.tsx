@@ -2,6 +2,7 @@
 import AdminConsole from "@/src/screens/AdminConsole";
 import FlightLogs from "@/src/screens/FlightLogs";
 import MedPartnerDashboard from "@/src/screens/MedPartnerDashboard";
+import NewRequestForm from "@/src/screens/NewRequestForm";
 import PilotSkyDashboard from "@/src/screens/PilotSkyDashboard";
 import SupportChat from "@/src/screens/SupportChat";
 import TerminalRequests from "@/src/screens/TerminalRequests";
@@ -35,6 +36,12 @@ export default function HomeScreen() {
           component={SupportChat}
           options={{ title: "Pegasus Support" }}
         />
+        <Stack.Screen
+  name="NewRequestForm"
+  component={NewRequestForm}
+  options={{ title: "New Request" }}
+/>
+
       </Stack.Navigator>
     </PaperProvider>
   );

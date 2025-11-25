@@ -331,7 +331,7 @@ const AdminConsole = ({ navigation }) => {
           onPress={() => navigation.navigate('TerminalRequests')}
         >
           <MaterialCommunityIcons name="cellphone-wireless" size={18} color="#9333ea" />
-          <Text style={styles.footerButtonText}>Terminal Requests</Text>
+          <Text style={styles.footerButtonText}>Flight Requests</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

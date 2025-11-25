@@ -23,7 +23,7 @@ const Navbar: React.FC = () => {
 
   // Only show these in the top navbar:
   const MENU_ROUTES: { label: string; route: RouteName }[] = [
-    { label: "Med Partner Dashboard", route: "MedPartnerDashboard" },
+    { label: "Med Partner Terminal", route: "MedPartnerDashboard" },
     { label: "Pilot Dashboard", route: "PilotDashboard" },
     { label: "Admin Console", route: "AdminConsole" },
   ];

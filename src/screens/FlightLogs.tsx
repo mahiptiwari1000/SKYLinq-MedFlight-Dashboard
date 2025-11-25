@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import {
+  ActivityIndicator,
   Platform,
   ScrollView,
   StyleSheet,
@@ -9,80 +10,52 @@ import {
   View
 } from "react-native";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button, Card, Text } from "react-native-paper";
 
+const API_BASE = "http://localhost:5001"; // iOS Simulator; change for Android/Device
 
 const FlightLogs = () => {
-  const flightEvents = [
-    {
-      timestamp: "2024-01-15 14:32:15",
-      event: "Pickup Completed",
-      flightId: "PEGA-001",
-      location: "Houston Methodist Hospital",
-      status: "completed",
-      priority: "STAT",
-      temp: "2.8°C",
-    },
-    {
-      timestamp: "2024-01-15 14:28:45",
-      event: "CoC Scan Verification",
-      flightId: "PEGA-001",
-      location: "Houston Methodist Hospital",
-      status: "completed",
-      priority: "STAT",
-      temp: "3.1°C",
-    },
-    {
-      timestamp: "2024-01-15 14:15:30",
-      event: "Flight Departure",
-      flightId: "PEGA-001",
-      location: "PEGA Base - Houston",
-      status: "completed",
-      priority: "STAT",
-      temp: "N/A",
-    },
-    {
-      timestamp: "2024-01-15 14:10:12",
-      event: "Weather Delay",
-      flightId: "PEGA-001",
-      location: "PEGA Base - Houston",
-      status: "resolved",
-      priority: "STAT",
-      temp: "N/A",
-    },
-    {
-      timestamp: "2024-01-15 13:45:20",
-      event: "Pre-flight Check",
-      flightId: "PEGA-001",
-      location: "PEGA Base - Houston",
-      status: "completed",
-      priority: "STAT",
-      temp: "N/A",
-    },
-    {
-      timestamp: "2024-01-15 12:58:45",
-      event: "Delivery Completed",
-      flightId: "PEGA-002",
-      location: "MD Anderson Cancer Center",
-      status: "completed",
-      priority: "Standard",
-      temp: "4.2°C",
-    },
-    {
-      timestamp: "2024-01-15 12:15:30",
-      event: "Cold Chain Alert",
-      flightId: "PEGA-002",
-      location: "In-flight to MD Anderson",
-      status: "resolved",
-      priority: "Standard",
-      temp: "6.8°C → 4.2°C",
-    },
-  ];
+  const [flightEvents, setFlightEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  // ---------------------------
+  // FETCH FLIGHT LOGS FROM BACKEND
+  // ---------------------------
+  useEffect(() => {
+    const loadLogs = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/logs`);
+        const data = await res.json();
 
+        console.log("FLIGHT LOGS:", data);
 
-    const generatePdfHtml = () => {
+        setFlightEvents(data);
+        setLoading(false);
+      } catch (err) {
+        console.error("Flight log fetch error:", err);
+        setLoading(false);
+      }
+    };
+
+    loadLogs();
+  }, []);
+
+  // ---------------------------
+  // LOADING STATE
+  // ---------------------------
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#7c3aed" />
+      </View>
+    );
+  }
+
+  // ---------------------------
+  // PDF EXPORT LOGIC
+  // ---------------------------
+  const generatePdfHtml = () => {
     const rowsHtml = flightEvents
       .map(
         (e) => `
@@ -105,46 +78,17 @@ const FlightLogs = () => {
           <meta charset="utf-8" />
           <title>Flight Events Log</title>
           <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-              padding: 24px;
-              color: #0f172a;
-              background-color: #ffffff;
-            }
-            h1 {
-              font-size: 22px;
-              margin-bottom: 4px;
-            }
-            .meta {
-              font-size: 12px;
-              color: #6b7280;
-              margin-bottom: 16px;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              font-size: 11px;
-            }
-            th, td {
-              border: 1px solid #e5e7eb;
-              padding: 6px 8px;
-              text-align: left;
-            }
-            th {
-              background-color: #f3f4f6;
-              font-weight: 600;
-            }
-            tr:nth-child(even) td {
-              background-color: #f9fafb;
-            }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 24px; }
+            table { width: 100%; border-collapse: collapse; font-size: 11px; }
+            th, td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; }
+            th { background-color: #f3f4f6; font-weight: 600; }
+            tr:nth-child(even) td { background-color: #f9fafb; }
           </style>
         </head>
         <body>
           <h1>Flight Events Log</h1>
-          <div class="meta">
-            Generated at: ${new Date().toLocaleString()}<br/>
-            Total events: ${flightEvents.length}
-          </div>
+          <p>Generated at: ${new Date().toLocaleString()}</p>
+          <p>Total events: ${flightEvents.length}</p>
           <table>
             <thead>
               <tr>
@@ -157,9 +101,7 @@ const FlightLogs = () => {
                 <th>Temp</th>
               </tr>
             </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
+            <tbody>${rowsHtml}</tbody>
           </table>
         </body>
       </html>
@@ -167,32 +109,32 @@ const FlightLogs = () => {
   };
 
   const handleExportPdf = async () => {
-  const html = generatePdfHtml();
+    const html = generatePdfHtml();
 
-  if (Platform.OS === "web") {
-    // ---- WEB DOWNLOAD LOGIC ----
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
+    if (Platform.OS === "web") {
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
 
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "flight_logs.html"; 
-    link.click();
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "flight_logs.html";
+      link.click();
 
-    URL.revokeObjectURL(url);
-    return;
-  }
+      URL.revokeObjectURL(url);
+      return;
+    }
 
-  // ---- MOBILE PDF LOGIC ----
-  try {
-    const { uri } = await Print.printToFileAsync({ html });
-    await Sharing.shareAsync(uri);
-  } catch (err) {
-    console.error("PDF error:", err);
-  }
-};
+    try {
+      const { uri } = await Print.printToFileAsync({ html });
+      await Sharing.shareAsync(uri);
+    } catch (err) {
+      console.error("PDF error:", err);
+    }
+  };
 
-
+  // ---------------------------
+  // MAIN UI (UNCHANGED)
+  // ---------------------------
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* HEADER */}
@@ -230,7 +172,7 @@ const FlightLogs = () => {
               mode="contained"
               buttonColor="#ef4444"
               textColor="#fff"
-              onPress={handleExportPdf}     
+              onPress={handleExportPdf}
             >
               Export PDF
             </Button>
@@ -267,13 +209,9 @@ const FlightLogs = () => {
               <Card.Content style={styles.syncContent}>
                 <View>
                   <Text style={styles.syncTitle}>Google Sheets</Text>
-                  <Text style={styles.syncDesc}>
-                    Live synchronization active
-                  </Text>
+                  <Text style={styles.syncDesc}>Live synchronization active</Text>
                 </View>
-                <Button mode="contained" buttonColor="#16a34a">
-                  Sync
-                </Button>
+                <Button mode="contained" buttonColor="#16a34a">Sync</Button>
               </Card.Content>
             </Card>
 
@@ -283,16 +221,14 @@ const FlightLogs = () => {
                   <Text style={styles.syncTitle}>Notion</Text>
                   <Text style={styles.syncDesc}>Database integration</Text>
                 </View>
-                <Button mode="contained" buttonColor="#3b82f6">
-                  Sync
-                </Button>
+                <Button mode="contained" buttonColor="#3b82f6">Sync</Button>
               </Card.Content>
             </Card>
           </View>
         </Card.Content>
       </Card>
 
-      {/* EVENT LOG TABLE */}
+      {/* EVENT TABLE */}
       <Card style={styles.logCard}>
         <Card.Title
           title="Flight Events Log"
@@ -306,12 +242,15 @@ const FlightLogs = () => {
           )}
           right={() => (
             <View style={styles.eventCount}>
-              <Text style={styles.eventCountText}>7 events</Text>
+              <Text style={styles.eventCountText}>
+                {flightEvents.length} events
+              </Text>
             </View>
           )}
         />
+
         <Card.Content>
-          {/* Table header */}
+          {/* HEADER */}
           <View style={styles.tableHeader}>
             {[
               "Timestamp",
@@ -322,13 +261,11 @@ const FlightLogs = () => {
               "Priority",
               "Temp",
             ].map((col) => (
-              <Text key={col} style={styles.tableHeaderText}>
-                {col}
-              </Text>
+              <Text key={col} style={styles.tableHeaderText}>{col}</Text>
             ))}
           </View>
 
-          {/* Rows */}
+          {/* ROWS */}
           {flightEvents.map((item, index) => (
             <View
               key={index}
@@ -616,6 +553,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
-
 
 export default FlightLogs;
