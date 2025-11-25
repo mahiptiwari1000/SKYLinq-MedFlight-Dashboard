@@ -14,9 +14,7 @@ import { Button, Card } from 'react-native-paper';
 import { G, Line, Path, Rect, Svg, Text as SvgText } from 'react-native-svg';
 
 // ⚠️ Change URL depending on device:
-// const API_BASE = "http://localhost:5000";  // iOS Simulator
-const API_BASE = "http://localhost:5001";
-// const API_BASE = "http://YOUR-IP:5000";    // Physical Device
+const API_BASE = "https://skylinq-backend-6ztr.vercel.app";
 
 //––––––––––––––––––––––––––––––––––––––––––––––––––
 // BAR CHART

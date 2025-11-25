@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Button, Text } from "react-native-paper";
 
-const API_BASE_URL = "http://localhost:5001";
+const API_BASE = "https://skylinq-backend-6ztr.vercel.app";
 // For device testing: replace YOUR-IP with your laptop IP like 192.168.1.10
 
 type Message = {

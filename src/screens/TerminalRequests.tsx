@@ -13,7 +13,7 @@ import { Button, Card } from "react-native-paper";
 
 
 // BASE URL
-const API_BASE = "http://localhost:5001";
+const API_BASE = "https://skylinq-backend-6ztr.vercel.app";
 
 const ProgressBar = ({ value }) => (
   <View style={styles.progressTrack}>

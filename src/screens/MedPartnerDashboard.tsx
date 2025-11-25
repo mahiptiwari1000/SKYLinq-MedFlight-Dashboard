@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { Button, Card } from "react-native-paper";
 
-const API_BASE = "http://localhost:5001"; // If Android → change to 10.0.2.2
+const API_BASE = "https://skylinq-backend-6ztr.vercel.app";
 
 const StatCard = ({ icon, value, label, color }) => (
   <Card style={styles.statCard}>

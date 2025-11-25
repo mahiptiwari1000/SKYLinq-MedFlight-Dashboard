@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Alert, ScrollView, StyleSheet, TextInput } from "react-native";
 import { Button, Card, Text } from "react-native-paper";
 
-const API_BASE = "http://localhost:5001";
+const API_BASE = "https://skylinq-backend-6ztr.vercel.app";
 
 const NewRequestForm = ({ navigation }) => {
   const [form, setForm] = useState({

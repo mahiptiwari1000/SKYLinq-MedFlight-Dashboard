@@ -13,7 +13,7 @@ import {
 import React, { useEffect, useState } from "react";
 import { Button, Card, Text } from "react-native-paper";
 
-const API_BASE = "http://localhost:5001"; // iOS Simulator; change for Android/Device
+const API_BASE = "https://skylinq-backend-6ztr.vercel.app";
 
 const FlightLogs = () => {
   const [flightEvents, setFlightEvents] = useState([]);
